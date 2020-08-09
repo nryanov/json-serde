@@ -1,5 +1,8 @@
 package jsonserde
 
+import shapeless._
+import shapeless.labelled.{FieldType, field}
+
 import scala.reflect.ClassTag
 import scala.util.Try
 
@@ -9,7 +12,9 @@ trait Decoder[A] extends Serializable { self =>
   final def map[B](f: A => B): Decoder[B] = (json: Json) => self.decode(json).map(f)
 }
 
-object Decoder {
+object Decoder extends DecoderLowPriorityInstances {
+  def apply[A](implicit decoder: Decoder[A]): Decoder[A] = decoder
+
   final implicit val jsonJsonDecoder: Decoder[Json] = (json: Json) => Right(json)
 
   final implicit val jsonUnitDecoder: Decoder[Unit] = {
@@ -109,6 +114,8 @@ object Decoder {
     case _ => Left(new RuntimeException("Array"))
   }
 
+  final implicit def jsonListDecoder[A: ClassTag](implicit decoder: Decoder[A]): Decoder[List[A]] = jsonArrayDecoder[A].map(_.toList)
+
   final implicit def jsonMapDecoder[A](implicit decoder: Decoder[A]): Decoder[Map[String, A]] = {
     case JsonObj(value) =>
       value.map {
@@ -121,4 +128,44 @@ object Decoder {
       }
     case _ => Left(new RuntimeException("Map"))
   }
+
+  final implicit def jsonGenericDecoder[A, H <: HList](
+    implicit gen: LabelledGeneric.Aux[A, H],
+    hDecoder: Lazy[Decoder[H]]
+  ): Decoder[A] = json => hDecoder.value.decode(json).map(gen.from)
+}
+
+trait DecoderLowPriorityInstances {
+  final implicit val hnilDecoder: Decoder[HNil] = _ => Right(HNil)
+
+  final implicit def hlistDecoder[K <: Symbol, H, T <: HList](
+    implicit witness: Witness.Aux[K],
+    hDecoder: Lazy[Decoder[H]],
+    tDecoder: Lazy[Decoder[T]]
+  ): Decoder[FieldType[K, H] :: T] = {
+    val fieldName = witness.value.name
+
+    json => {
+      json match {
+        case JsonObj(fields) =>
+          val jsonField = fields.collectFirst {
+            case (str, json) if str == fieldName => json
+          }
+
+          jsonField match {
+            case Some(value) =>
+              val head = hDecoder.value.decode(value)
+              val tail = tDecoder.value.decode(json)
+
+              for {
+                h <- head
+                t <- tail
+              } yield field[K](h) :: t
+            case None => Left(new RuntimeException("Non-option field does not exist"))
+          }
+        case _ => Left(new RuntimeException("Incorrect json"))
+      }
+    }
+  }
+
 }

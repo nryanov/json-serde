@@ -4,7 +4,7 @@ import java.math.{BigDecimal => JBigDecimal}
 
 sealed trait Json
 
-final case class JsonObj(fields: Map[String, Json]) extends Json
+final case class JsonObj(fields: List[(String, Json)]) extends Json
 
 final case class JsonArray(values: Vector[Json]) extends Json
 

@@ -11,7 +11,7 @@ class DecoderSpec extends BaseSpec {
     }
 
     "decode unit" in {
-      assert(decode[Unit](JsonObj(Map.empty)).contains(()))
+      assert(decode[Unit](JsonObj(List.empty)).contains(()))
     }
 
     "decode string" in {
@@ -75,12 +75,26 @@ class DecoderSpec extends BaseSpec {
       assert(
         decode[Map[String, Int]](
           JsonObj(
-            Map(
-              "f1" -> JNumber(JsonBigDecimal(1))
+            List(
+              ("f1", JNumber(JsonBigDecimal(1)))
             )
           )
         ).contains(Map("f1" -> 1))
       )
+    }
+
+    "decode generic class" in {
+      case class A(f1: String, f2: Int, f3: List[String])
+
+      val json = JsonObj(
+        List(
+          ("f1", JsonString("1")),
+          ("f2", JNumber(JsonInt(2))),
+          ("f3", JsonArray(Vector(JsonString("3"))))
+        )
+      )
+
+      assert(decode[A](json).contains(A("1", 2, List("3"))))
     }
   }
 }

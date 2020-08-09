@@ -6,7 +6,7 @@ import scala.jdk.CollectionConverters._
 
 final class JsonVisitor extends JSONBaseVisitor[Json] {
   override def visitPair(ctx: JSONParser.PairContext): Json =
-    JsonObj(Map(removeQuotes(ctx.key.getText) -> visit(ctx.value())))
+    JsonObj(List((removeQuotes(ctx.key.getText), visit(ctx.value()))))
 
   override def visitStringValue(ctx: JSONParser.StringValueContext): Json =
     JsonString(removeQuotes(ctx.STRING().getSymbol.getText))
@@ -16,7 +16,7 @@ final class JsonVisitor extends JSONBaseVisitor[Json] {
 
   override def visitObjectValue(ctx: JSONParser.ObjectValueContext): Json =
     JsonObj(
-      ctx.obj().pair().asScala.map(pair => (removeQuotes(pair.key.getText), visit(pair.value()))).toMap
+      ctx.obj().pair().asScala.map(pair => (removeQuotes(pair.key.getText), visit(pair.value()))).toList
     )
 
   override def visitArrayValue(ctx: JSONParser.ArrayValueContext): Json =

@@ -2,6 +2,7 @@ package jsonserde
 
 import Encoder._
 import EncoderOps._
+import shapeless.LabelledGeneric
 
 class EncoderSpec extends BaseSpec {
   "encoder" should {
@@ -11,7 +12,7 @@ class EncoderSpec extends BaseSpec {
     }
 
     "encode unit" in {
-      assertResult(JsonObj(Map.empty))(encode(()))
+      assertResult(JsonObj(List.empty))(encode(()))
     }
 
     "encode string" in {
@@ -65,10 +66,10 @@ class EncoderSpec extends BaseSpec {
     "encode map" in {
       assertResult(
         JsonObj(
-          Map(
-            "f1" -> JsonString("v1"),
-            "f2" -> JsonString("v2"),
-            "f3" -> JsonString("v3")
+          List(
+            ("f1", JsonString("v1")),
+            ("f2", JsonString("v2")),
+            ("f3", JsonString("v3"))
           )
         )
       )(
@@ -85,6 +86,13 @@ class EncoderSpec extends BaseSpec {
     "encode option" in {
       assertResult(JsonString("value"))(encode(Some("value")))
       assertResult(JsonNull)(encode(None))
+    }
+
+    "encode generic type" in {
+      case class A(f1: Int, f2: String, f3: Array[Int])
+      val a: A = A(1, "2", Array(3))
+
+      assertResult(JsonObj(List(("f1", JsonInt(1)), ("f2", JsonString("2")), ("f3", JsonArray(Vector(JsonInt(3)))))))(encode(a))
     }
   }
 }

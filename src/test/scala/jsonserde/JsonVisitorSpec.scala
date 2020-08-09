@@ -39,7 +39,7 @@ class JsonVisitorSpec extends BaseSpec {
 
     "return object" in {
       assert(
-        JsonOps.parse("{\"key\": \"value\"}").contains(JsonObj(Map("key" -> JsonString("value"))))
+        JsonOps.parse("{\"key\": \"value\"}").contains(JsonObj(List(("key", JsonString("value")))))
       )
     }
 
