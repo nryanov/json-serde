@@ -1,0 +1,3 @@
+package jsonserde
+
+trait Decoder {}
