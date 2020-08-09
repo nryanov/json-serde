@@ -7,7 +7,7 @@ error: UNEXPECTED_CHAR {
 };
 
 json
-   : value
+   : value EOF
    ;
 
 obj

@@ -1,12 +1,9 @@
 package jsonserde
 
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-
-class JsonVisitorSpec extends AnyWordSpec with Matchers {
+class JsonVisitorSpec extends BaseSpec {
   "json visitor" should {
     "return JsonNull" in {
-      assert(JsonOps.parse("'null'").contains(JsonNull))
+      assert(JsonOps.parse("null").contains(JsonNull))
     }
 
     "return JsonString" in {
@@ -14,12 +11,12 @@ class JsonVisitorSpec extends AnyWordSpec with Matchers {
     }
 
     "return JsonNumber" in {
-      assert(JsonOps.parse("123").contains(JsonNumber(123)))
+      assert(JsonOps.parse("123").contains(JNumber(JsonBigDecimal(123))))
     }
 
     "return Boolean" in {
-      assert(JsonOps.parse("'true'").contains(JsonBoolean(true)))
-      assert(JsonOps.parse("'false'").contains(JsonBoolean(false)))
+      assert(JsonOps.parse("true").contains(JsonBoolean(true)))
+      assert(JsonOps.parse("false").contains(JsonBoolean(false)))
     }
 
     "return array" in {
@@ -29,11 +26,11 @@ class JsonVisitorSpec extends AnyWordSpec with Matchers {
           .contains(
             JsonArray(
               Vector(
-                JsonNumber(1),
-                JsonNumber(2),
-                JsonNumber(3),
-                JsonNumber(4),
-                JsonNumber(5)
+                JNumber(JsonBigDecimal(1)),
+                JNumber(JsonBigDecimal(2)),
+                JNumber(JsonBigDecimal(3)),
+                JNumber(JsonBigDecimal(4)),
+                JNumber(JsonBigDecimal(5))
               )
             )
           )
@@ -42,9 +39,7 @@ class JsonVisitorSpec extends AnyWordSpec with Matchers {
 
     "return object" in {
       assert(
-        JsonOps
-          .parse("{\"key\": \"value\"}")
-          .contains(JsonObj(Map("key" -> JsonString("value"))))
+        JsonOps.parse("{\"key\": \"value\"}").contains(JsonObj(Map("key" -> JsonString("value"))))
       )
     }
 

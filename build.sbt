@@ -28,4 +28,7 @@ antlr4GenVisitor in Antlr4 := true
 antlr4TreatWarningsAsErrors in Antlr4 := true
 javaSource in Antlr4 := (sourceManaged in Compile).value
 
-libraryDependencies ++= Seq("org.scalatest" %% "scalatest" % "3.1.0" % Test)
+libraryDependencies ++= Seq(
+  "com.chuusai" %% "shapeless" % "2.3.3",
+  "org.scalatest" %% "scalatest" % "3.1.0" % Test
+)
