@@ -9,66 +9,23 @@ trait Encoder[A] extends Serializable { self =>
   final def contramap[B](f: B => A): Encoder[B] = (value: B) => self.encode(f(value))
 }
 
-trait ObjectEncoder[A] extends Encoder[A] {
-  def encode(value: A): JsonObj
-}
-
 object Encoder extends EncoderLowPriorityInstances {
   def apply[A](implicit encoder: Encoder[A]): Encoder[A] = encoder
 
-  final implicit val jsonJsonEncoder: Encoder[Json] = (value: Json) => value
+  implicit def fromJsonWriter[A](implicit writer: JsonWriter[A]): Encoder[A] = writer.write
 
-  final implicit val jsonUnitEncoder: Encoder[Unit] = (_: Unit) => JsonObj(List.empty)
-
-  final implicit val jsonStringEncoder: Encoder[String] = (value: String) => JsonString(value)
-
-  final implicit val jsonCharEncoder: Encoder[Char] = (value: Char) => JsonString(value.toString)
-
-  final implicit val jsonBooleanEncoder: Encoder[Boolean] = (value: Boolean) => JsonBoolean(value)
-
-  final implicit val jsonByteEncoder: Encoder[Byte] = (value: Byte) => JsonByte(value)
-
-  final implicit val jsonShortEncoder: Encoder[Short] = (value: Short) => JsonShort(value)
-
-  final implicit val jsonIntEncoder: Encoder[Int] = (value: Int) => JsonInt(value)
-
-  final implicit val jsonLongEncoder: Encoder[Long] = (value: Long) => JsonLong(value)
-
-  final implicit val jsonFloatEncoder: Encoder[Float] = (value: Float) => JsonFloat(value)
-
-  final implicit val jsonDoubleEncoder: Encoder[Double] = (value: Double) => JsonDouble(value)
-
-  final implicit val jsonBigIntEncoder: Encoder[BigInt] = (value: BigInt) => JsonBigInt(value)
-
-  final implicit val jsonBigDecimalEncoder: Encoder[BigDecimal] = (value: BigDecimal) => JsonBigDecimal(value)
-
-  final implicit def jsonArrayEncoder[A: Encoder]: Encoder[Array[A]] = (values: Array[A]) =>
-    JsonArray(values.map(implicitly[Encoder[A]].encode(_)).toVector)
-
-  final implicit def jsonListEncoder[A: Encoder]: Encoder[List[A]] = (values: List[A]) =>
-    JsonArray(values.map(implicitly[Encoder[A]].encode(_)).toVector)
-
-  final implicit def jsonMapEncoder[A: Encoder]: Encoder[Map[String, A]] = (values: Map[String, A]) =>
-    JsonObj(values.map {
-      case (k, v) => (k, implicitly[Encoder[A]].encode(v))
-    }.toList)
-
-  final implicit def jsonOptionEncoder[A: Encoder]: Encoder[Option[A]] = {
-    case Some(value) => implicitly[Encoder[A]].encode(value)
+  implicit def fromJsonWriterOption[A](implicit writer: JsonWriter[A]): Encoder[Option[A]] = {
+    case Some(value) => writer.write(value)
     case None        => JsonNull
   }
+}
 
-  final implicit def jsonSomeEncoder[A: Encoder]: Encoder[Some[A]] = (value: Some[A]) => implicitly[Encoder[A]].encode(value.get)
-
-  final implicit val jsonNoneEncoder: Encoder[None.type] = _ => JsonNull
-
+trait EncoderLowPriorityInstances extends EncoderLowestPriorityInstances {
   final implicit def genericEncoder[A, H <: HList](
     implicit gen: LabelledGeneric.Aux[A, H],
     hEncoder: Lazy[Encoder[H]]
   ): Encoder[A] = (value: A) => hEncoder.value.encode(gen.to(value))
-}
 
-trait EncoderLowPriorityInstances {
   final implicit val hnilEncoder: Encoder[HNil] = (_: HNil) => JsonNull
 
   final implicit def hlistEncoder[K <: Symbol, H, T <: HList](
@@ -85,6 +42,61 @@ trait EncoderLowPriorityInstances {
       tail match {
         case JsonObj(fields) => JsonObj(List((fieldName, head)) ::: fields)
         case _               => JsonObj(List((fieldName, head)))
+      }
+    }
+  }
+}
+
+trait EncoderLowestPriorityInstances {
+  implicit def genericOptionEncoder[A, Repr <: HList](
+    implicit gen: LabelledGeneric.Aux[A, Repr],
+    hEncoder: Lazy[Encoder[Option[Repr]]]
+  ): Encoder[Option[A]] = {
+    case value @ Some(_) => hEncoder.value.encode(value.map(gen.to))
+    case None            => JsonNull
+  }
+
+  implicit val hnilOptionEncoder: Encoder[Option[HNil]] = _ => JsonNull
+
+  implicit def hlistOptionEncoder1[K <: Symbol, H, T <: HList](
+    implicit witness: Witness.Aux[K],
+    hEncoder: Lazy[Encoder[Option[H]]],
+    tEncoder: Lazy[Encoder[Option[T]]],
+    N: H <:!< Option[α] forSome { type α }
+  ): Encoder[Option[FieldType[K, H] :: T]] = {
+    def split[A](v: Option[H :: T])(f: (Option[H], Option[T]) => A): A = v.fold(f(None, None))({ case h :: t => f(Some(h), Some(t)) })
+
+    val fieldName: String = witness.value.name
+
+    hlist => {
+      split(hlist) {
+        case (head, tail) =>
+          val encodedHead: Json = hEncoder.value.encode(head)
+          tEncoder.value.encode(tail) match {
+            case JsonObj(fields) => JsonObj(List((fieldName, encodedHead)) ::: fields)
+            case _               => JsonObj(List((fieldName, encodedHead)))
+          }
+      }
+    }
+  }
+
+  implicit def hlistOptionEncoder2[K <: Symbol, H, T <: HList](
+    implicit witness: Witness.Aux[K],
+    hEncoder: Lazy[Encoder[Option[H]]],
+    tEncoder: Lazy[Encoder[Option[T]]]
+  ): Encoder[Option[FieldType[K, Option[H]] :: T]] = {
+    def split[A](v: Option[Option[H] :: T])(f: (Option[H], Option[T]) => A): A = v.fold(f(None, None))({ case h :: t => f(h, Some(t)) })
+
+    val fieldName: String = witness.value.name
+
+    hlist => {
+      split(hlist) {
+        case (head, tail) =>
+          val encodedHead: Json = hEncoder.value.encode(head)
+          tEncoder.value.encode(tail) match {
+            case JsonObj(fields) => JsonObj(List((fieldName, encodedHead)) ::: fields)
+            case _               => JsonObj(List((fieldName, encodedHead)))
+          }
       }
     }
   }

@@ -2,7 +2,6 @@ package jsonserde
 
 import Encoder._
 import EncoderOps._
-import shapeless.LabelledGeneric
 
 class EncoderSpec extends BaseSpec {
   "encoder" should {
@@ -84,15 +83,64 @@ class EncoderSpec extends BaseSpec {
     }
 
     "encode option" in {
-      assertResult(JsonString("value"))(encode(Some("value")))
-      assertResult(JsonNull)(encode(None))
+      val some: Option[String] = Some("value")
+      val none: Option[String] = None
+
+      assertResult(JsonString("value"))(encode(some))
+      assertResult(JsonNull)(encode(none))
     }
 
-    "encode generic type" in {
+    "encode case class without option fields" in {
       case class A(f1: Int, f2: String, f3: Array[Int])
       val a: A = A(1, "2", Array(3))
+      val aSome: Option[A] = Some(A(1, "2", Array(3)))
+      val aNone: Option[A] = None
 
-      assertResult(JsonObj(List(("f1", JsonInt(1)), ("f2", JsonString("2")), ("f3", JsonArray(Vector(JsonInt(3)))))))(encode(a))
+      assertResult(
+        JsonObj(
+          List(
+            ("f1", JsonInt(1)),
+            ("f2", JsonString("2")),
+            ("f3", JsonArray(Vector(JsonInt(3))))
+          )
+        )
+      )(encode(a))
+      assertResult(
+        JsonObj(
+          List(
+            ("f1", JsonInt(1)),
+            ("f2", JsonString("2")),
+            ("f3", JsonArray(Vector(JsonInt(3))))
+          )
+        )
+      )(encode(aSome))
+      assertResult(JsonNull)(encode(aNone))
+    }
+
+    "encode case class with option fields" in {
+      case class B(f1: Option[String], f2: Option[String])
+
+      val b: B = B(Some("1"), Some("2"))
+      val bSome: Option[B] = Some(B(None, Some("2")))
+      val bNone: Option[B] = None
+
+      assertResult(
+        JsonObj(
+          List(
+            ("f1", JsonString("1")),
+            ("f2", JsonString("2"))
+          )
+        )
+      )(encode(b))
+      assertResult(
+        JsonObj(
+          List(
+            ("f1", JsonNull),
+            ("f2", JsonString("2"))
+          )
+        )
+      )(encode(bSome))
+      assertResult(JsonNull)(encode(bNone))
     }
   }
 }

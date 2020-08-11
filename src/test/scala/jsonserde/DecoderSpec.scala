@@ -2,6 +2,8 @@ package jsonserde
 
 import Decoder._
 import DecoderOps._
+import shapeless.LabelledGeneric.Aux
+import shapeless.labelled.FieldType
 
 class DecoderSpec extends BaseSpec {
   "decoder" should {
@@ -83,7 +85,7 @@ class DecoderSpec extends BaseSpec {
       )
     }
 
-    "decode generic class" in {
+    "decode case class" in {
       case class A(f1: String, f2: Int, f3: List[String])
 
       val json = JsonObj(
@@ -94,7 +96,42 @@ class DecoderSpec extends BaseSpec {
         )
       )
 
+      val jsonNull = JsonNull
+
       assert(decode[A](json).contains(A("1", 2, List("3"))))
+      assert(decode[Option[A]](jsonNull).contains(None))
+    }
+
+    "decode case class with options" in {
+      case class B(f1: String, f2: Option[Int], f3: List[String])
+
+      val json = JsonObj(
+        List(
+          ("f1", JsonString("1")),
+          ("f2", JNumber(JsonInt(2))),
+          ("f3", JsonArray(Vector(JsonString("3"))))
+        )
+      )
+
+      val jsonWithNull = JsonObj(
+        List(
+          ("f1", JsonString("1")),
+          ("f2", JsonNull),
+          ("f3", JsonArray(Vector(JsonString("3"))))
+        )
+      )
+
+      val jsonWithoutField = JsonObj(
+        List(
+          ("f1", JsonString("1")),
+          ("f3", JsonArray(Vector(JsonString("3"))))
+        )
+      )
+
+      assert(decode[Option[B]](json).contains(Some(B("1", Some(2), List("3")))))
+      assert(decode[B](jsonWithNull).contains(B("1", None, List("3"))))
+      assert(decode[B](jsonWithoutField).contains(B("1", None, List("3"))))
+      assert(decode[Option[B]](jsonWithoutField).contains(Some(B("1", None, List("3")))))
     }
   }
 }
