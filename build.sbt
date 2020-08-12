@@ -9,6 +9,7 @@ addCompilerPlugin(
 enablePlugins(Antlr4Plugin)
 
 scalacOptions := Seq(
+//  "-Xlog-implicits",
   "-encoding",
   "utf8",
   "-Xfatal-warnings",

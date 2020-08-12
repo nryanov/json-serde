@@ -2,8 +2,6 @@ package jsonserde
 
 import Decoder._
 import DecoderOps._
-import shapeless.LabelledGeneric.Aux
-import shapeless.labelled.FieldType
 
 class DecoderSpec extends BaseSpec {
   "decoder" should {
@@ -132,6 +130,34 @@ class DecoderSpec extends BaseSpec {
       assert(decode[B](jsonWithNull).contains(B("1", None, List("3"))))
       assert(decode[B](jsonWithoutField).contains(B("1", None, List("3"))))
       assert(decode[Option[B]](jsonWithoutField).contains(Some(B("1", None, List("3")))))
+    }
+
+    "decode case class with default values" in {
+      case class C(f1: String = "1", f2: Option[String] = Some("2"))
+
+      val json = JsonObj(
+        List(
+          ("f1", JsonString("nonDefault1")),
+          ("f2", JsonString("nonDefault2"))
+        )
+      )
+
+      // we can return default value for non-nullable fields, but currently we'll return error
+      val jsonWithoutNonOptionalField = JsonObj(
+        List(
+          ("f2", JsonString("nonDefault2"))
+        )
+      )
+
+      val jsonWithoutOptionalField = JsonObj(
+        List(
+          ("f1", JsonString("nonDefault1"))
+        )
+      )
+
+      assert(decode[C](json).contains(C("nonDefault1", Some("nonDefault2"))))
+      assert(decode[C](jsonWithoutNonOptionalField).isLeft)
+      assert(decode[C](jsonWithoutOptionalField).contains(C("nonDefault1")))
     }
   }
 }
