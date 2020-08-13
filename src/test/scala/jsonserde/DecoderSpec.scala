@@ -27,35 +27,35 @@ class DecoderSpec extends BaseSpec {
     }
 
     "decode byte" in {
-      assert(decode[Byte](JNumber(JsonBigDecimal(BigDecimal(1.toByte)))).contains(1.toByte))
+      assert(decode[Byte](JsonNumber(BigDecimal(1.toByte))).contains(1.toByte))
     }
 
     "decode short" in {
-      assert(decode[Short](JNumber(JsonBigDecimal(BigDecimal(1.toShort)))).contains(1.toShort))
+      assert(decode[Short](JsonNumber(BigDecimal(1.toShort))).contains(1.toShort))
     }
 
     "decode int" in {
-      assert(decode[Int](JNumber(JsonBigDecimal(BigDecimal(1)))).contains(1))
+      assert(decode[Int](JsonNumber(BigDecimal(1))).contains(1))
     }
 
     "decode long" in {
-      assert(decode[Long](JNumber(JsonBigDecimal(BigDecimal(1L)))).contains(1L))
+      assert(decode[Long](JsonNumber(BigDecimal(1L))).contains(1L))
     }
 
     "decode float" in {
-      assert(decode[Float](JNumber(JsonBigDecimal(BigDecimal(1.0f)))).contains(1.0f))
+      assert(decode[Float](JsonNumber(BigDecimal(1.0f))).contains(1.0f))
     }
 
     "decode double" in {
-      assert(decode[Double](JNumber(JsonBigDecimal(BigDecimal(1.0d)))).contains(1.0d))
+      assert(decode[Double](JsonNumber(BigDecimal(1.0d))).contains(1.0d))
     }
 
     "decode bigint" in {
-      assert(decode[BigInt](JNumber(JsonBigDecimal(BigDecimal(1)))).contains(BigInt(1)))
+      assert(decode[BigInt](JsonNumber(BigDecimal(BigInt(1)))).contains(BigInt(1)))
     }
 
     "decode big decimal" in {
-      assert(decode[Byte](JNumber(JsonBigDecimal(BigDecimal(1.toByte)))).contains(BigDecimal(1)))
+      assert(decode[Byte](JsonNumber(BigDecimal(1.toByte))).contains(BigDecimal(1)))
     }
 
     "decode option" in {
@@ -76,7 +76,7 @@ class DecoderSpec extends BaseSpec {
         decode[Map[String, Int]](
           JsonObj(
             List(
-              ("f1", JNumber(JsonBigDecimal(1)))
+              ("f1", JsonNumber(1))
             )
           )
         ).contains(Map("f1" -> 1))
@@ -89,7 +89,7 @@ class DecoderSpec extends BaseSpec {
       val json = JsonObj(
         List(
           ("f1", JsonString("1")),
-          ("f2", JNumber(JsonInt(2))),
+          ("f2", JsonNumber(2)),
           ("f3", JsonArray(Vector(JsonString("3"))))
         )
       )
@@ -106,7 +106,7 @@ class DecoderSpec extends BaseSpec {
       val json = JsonObj(
         List(
           ("f1", JsonString("1")),
-          ("f2", JNumber(JsonInt(2))),
+          ("f2", JsonNumber(2)),
           ("f3", JsonArray(Vector(JsonString("3"))))
         )
       )

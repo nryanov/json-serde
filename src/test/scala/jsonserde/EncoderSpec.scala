@@ -27,39 +27,41 @@ class EncoderSpec extends BaseSpec {
     }
 
     "encode byte" in {
-      assertResult(JsonByte(1))(encode(1.toByte))
+      assertResult(JsonNumber(1))(encode(1.toByte))
     }
 
     "encode short" in {
-      assertResult(JsonShort(1))(encode(1.toShort))
+      assertResult(JsonNumber(1))(encode(1.toShort))
     }
 
     "encode int" in {
-      assertResult(JsonInt(1))(encode(1))
+      assertResult(JsonNumber(1))(encode(1))
     }
 
     "encode long" in {
-      assertResult(JsonLong(1))(encode(1L))
+      assertResult(JsonNumber(1))(encode(1L))
     }
 
     "encode float" in {
-      assertResult(JsonFloat(1))(encode(1.0f))
+      assertResult(JsonNumber(1))(encode(1.0f))
     }
 
     "encode double" in {
-      assertResult(JsonDouble(1))(encode(1.0d))
+      assertResult(JsonNumber(1))(encode(1.0d))
     }
 
     "encode bigint" in {
-      assertResult(JsonBigInt(1))(encode(BigInt(1)))
+      assertResult(JsonNumber(1))(encode(BigInt(1)))
     }
 
     "encode bigdecimal" in {
-      assertResult(JsonBigDecimal(1))(encode(BigDecimal(1)))
+      assertResult(JsonNumber(1))(encode(BigDecimal(1)))
     }
 
     "encode array" in {
-      assertResult(JsonArray(Vector(JsonInt(1), JsonInt(2), JsonInt(3), JsonInt(4), JsonInt(5))))(encode(Array(1, 2, 3, 4, 5)))
+      assertResult(JsonArray(Vector(JsonNumber(1), JsonNumber(2), JsonNumber(3), JsonNumber(4), JsonNumber(5))))(
+        encode(Array(1, 2, 3, 4, 5))
+      )
     }
 
     "encode map" in {
@@ -99,18 +101,18 @@ class EncoderSpec extends BaseSpec {
       assertResult(
         JsonObj(
           List(
-            ("f1", JsonInt(1)),
+            ("f1", JsonNumber(1)),
             ("f2", JsonString("2")),
-            ("f3", JsonArray(Vector(JsonInt(3))))
+            ("f3", JsonArray(Vector(JsonNumber(3))))
           )
         )
       )(encode(a))
       assertResult(
         JsonObj(
           List(
-            ("f1", JsonInt(1)),
+            ("f1", JsonNumber(1)),
             ("f2", JsonString("2")),
-            ("f3", JsonArray(Vector(JsonInt(3))))
+            ("f3", JsonArray(Vector(JsonNumber(3))))
           )
         )
       )(encode(aSome))

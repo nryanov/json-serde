@@ -19,21 +19,21 @@ object JsonWriter {
 
   final implicit val jsonBooleanWrite: JsonWriter[Boolean] = (value: Boolean) => JsonBoolean(value)
 
-  final implicit val jsonByteWrite: JsonWriter[Byte] = (value: Byte) => JsonByte(value)
+  final implicit val jsonByteWrite: JsonWriter[Byte] = (value: Byte) => JsonNumber(value)
 
-  final implicit val jsonShortWrite: JsonWriter[Short] = (value: Short) => JsonShort(value)
+  final implicit val jsonShortWrite: JsonWriter[Short] = (value: Short) => JsonNumber(value)
 
-  final implicit val jsonIntWrite: JsonWriter[Int] = (value: Int) => JsonInt(value)
+  final implicit val jsonIntWrite: JsonWriter[Int] = (value: Int) => JsonNumber(value)
 
-  final implicit val jsonLongWrite: JsonWriter[Long] = (value: Long) => JsonLong(value)
+  final implicit val jsonLongWrite: JsonWriter[Long] = (value: Long) => JsonNumber(value)
 
-  final implicit val jsonFloatWrite: JsonWriter[Float] = (value: Float) => JsonFloat(value)
+  final implicit val jsonFloatWrite: JsonWriter[Float] = (value: Float) => JsonNumber(value)
 
-  final implicit val jsonDoubleWrite: JsonWriter[Double] = (value: Double) => JsonDouble(value)
+  final implicit val jsonDoubleWrite: JsonWriter[Double] = (value: Double) => JsonNumber(value)
 
-  final implicit val jsonBigIntWrite: JsonWriter[BigInt] = (value: BigInt) => JsonBigInt(value)
+  final implicit val jsonBigIntWrite: JsonWriter[BigInt] = (value: BigInt) => JsonNumber(value)
 
-  final implicit val jsonBigDecimalWrite: JsonWriter[BigDecimal] = (value: BigDecimal) => JsonBigDecimal(value)
+  final implicit val jsonBigDecimalWrite: JsonWriter[BigDecimal] = (value: BigDecimal) => JsonNumber(value)
 
   final implicit def jsonArrayJsonWriter[A: JsonWriter]: JsonWriter[Array[A]] = (values: Array[A]) =>
     JsonArray(values.map(implicitly[JsonWriter[A]].write(_)).toVector)
@@ -45,13 +45,4 @@ object JsonWriter {
     JsonObj(values.map {
       case (k, v) => (k, implicitly[JsonWriter[A]].write(v))
     }.toList)
-//
-//  final implicit def jsonOptionJsonWriter[A: JsonWriter]: JsonWriter[Option[A]] = {
-//    case Some(value) => implicitly[JsonWriter[A]].write(value)
-//    case None        => JsonNull
-//  }
-//
-//  final implicit def jsonSomeJsonWriter[A: JsonWriter]: JsonWriter[Some[A]] = (value: Some[A]) => implicitly[JsonWriter[A]].write(value.get)
-//
-//  final implicit val jsonNoneWrite: JsonWriter[None.type] = _ => JsonNull
 }

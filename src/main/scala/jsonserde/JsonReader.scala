@@ -37,51 +37,51 @@ object JsonReader {
   }
 
   final implicit val jsonByteRead: JsonReader[Byte] = {
-    case JNumber(value)    => value.toByte.toRight(new RuntimeException("Byte"))
+    case JsonNumber(value) => Right(value.byteValue)
     case JsonString(value) => value.toByteOption.toRight(new RuntimeException("Byte"))
     case _                 => Left(new RuntimeException("Byte"))
   }
 
   final implicit val jsonShortRead: JsonReader[Short] = {
-    case JNumber(value)    => value.toShort.toRight(new RuntimeException("Short"))
+    case JsonNumber(value) => Right(value.shortValue)
     case JsonString(value) => value.toShortOption.toRight(new RuntimeException("Short"))
     case _                 => Left(new RuntimeException("Short"))
   }
 
   final implicit val jsonIntRead: JsonReader[Int] = {
-    case JNumber(value)    => value.toInt.toRight(new RuntimeException("Int"))
+    case JsonNumber(value) => Right(value.intValue)
     case JsonString(value) => value.toIntOption.toRight(new RuntimeException("Int"))
     case _                 => Left(new RuntimeException("Int"))
   }
 
   final implicit val jsonLongRead: JsonReader[Long] = {
-    case JNumber(value)    => value.toLong.toRight(new RuntimeException("Long"))
+    case JsonNumber(value) => Right(value.longValue)
     case JsonString(value) => value.toLongOption.toRight(new RuntimeException("Long"))
     case _                 => Left(new RuntimeException("Long"))
   }
 
   final implicit val jsonFloatRead: JsonReader[Float] = {
-    case JNumber(value)    => Right(value.toFloat)
+    case JsonNumber(value) => Right(value.floatValue)
     case JsonNull          => Right(Float.NaN)
     case JsonString(value) => value.toFloatOption.toRight(new RuntimeException("Float"))
     case _                 => Left(new RuntimeException("Float"))
   }
 
   final implicit val jsonDoubleRead: JsonReader[Double] = {
-    case JNumber(value)    => Right(value.toDouble)
+    case JsonNumber(value) => Right(value.doubleValue)
     case JsonNull          => Right(Double.NaN)
     case JsonString(value) => value.toDoubleOption.toRight(new RuntimeException("Double"))
     case _                 => Left(new RuntimeException("Double"))
   }
 
   final implicit val jsonBigIntRead: JsonReader[BigInt] = {
-    case JNumber(value)    => value.toBigInt.toRight(new RuntimeException("BigInt"))
+    case JsonNumber(value) => Right(value.toBigInt)
     case JsonString(value) => Try(BigInt(value)).toEither
     case _                 => Left(new RuntimeException("BigInt"))
   }
 
   final implicit val jsonBigDecimalRead: JsonReader[BigDecimal] = {
-    case JNumber(value)    => value.toBigDecimal.toRight(new RuntimeException("BigDecimal"))
+    case JsonNumber(value) => Right(value)
     case JsonString(value) => Try(BigDecimal(value)).toEither
     case _                 => Left(new RuntimeException("BigDecimal"))
   }

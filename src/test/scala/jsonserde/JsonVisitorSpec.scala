@@ -11,7 +11,7 @@ class JsonVisitorSpec extends BaseSpec {
     }
 
     "return JsonNumber" in {
-      assert(JsonOps.parse("123").contains(JNumber(JsonBigDecimal(123))))
+      assert(JsonOps.parse("123").contains(JsonNumber(123)))
     }
 
     "return Boolean" in {
@@ -26,11 +26,11 @@ class JsonVisitorSpec extends BaseSpec {
           .contains(
             JsonArray(
               Vector(
-                JNumber(JsonBigDecimal(1)),
-                JNumber(JsonBigDecimal(2)),
-                JNumber(JsonBigDecimal(3)),
-                JNumber(JsonBigDecimal(4)),
-                JNumber(JsonBigDecimal(5))
+                JsonNumber(1),
+                JsonNumber(2),
+                JsonNumber(3),
+                JsonNumber(4),
+                JsonNumber(5)
               )
             )
           )

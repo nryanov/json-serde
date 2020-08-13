@@ -5,6 +5,9 @@ import org.antlr.v4.runtime.tree.ErrorNode
 import scala.jdk.CollectionConverters._
 
 final class JsonVisitor extends JSONBaseVisitor[Json] {
+  override def visitJson(ctx: JSONParser.JsonContext): Json =
+    visit(ctx.value())
+
   override def visitPair(ctx: JSONParser.PairContext): Json =
     JsonObj(List((removeQuotes(ctx.key.getText), visit(ctx.value()))))
 
@@ -12,7 +15,7 @@ final class JsonVisitor extends JSONBaseVisitor[Json] {
     JsonString(removeQuotes(ctx.STRING().getSymbol.getText))
 
   override def visitNumberValue(ctx: JSONParser.NumberValueContext): Json =
-    JNumber(JsonBigDecimal(BigDecimal(ctx.NUMBER().getSymbol.getText)))
+    JsonNumber(BigDecimal(ctx.NUMBER().getSymbol.getText))
 
   override def visitObjectValue(ctx: JSONParser.ObjectValueContext): Json =
     JsonObj(
