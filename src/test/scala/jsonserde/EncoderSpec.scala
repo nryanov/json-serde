@@ -144,5 +144,57 @@ class EncoderSpec extends BaseSpec {
       )(encode(bSome))
       assertResult(JsonNull)(encode(bNone))
     }
+
+    "encode case class with custom field names" in {
+      case class C1(@FieldName("customField1") f1: String, @FieldName("customField2") f2: String, f3: String)
+      case class C2(
+        @FieldName("customOptionField1") f1: Option[String],
+        @FieldName("customOptionField2") f2: Option[String],
+        f3: Option[String]
+      )
+
+      val c1: C1 = C1("1", "2", "3")
+      val c2: C2 = C2(Some("1"), Some("2"), Some("3"))
+
+      assertResult(
+        JsonObj(
+          List(
+            ("customField1", JsonString("1")),
+            ("customField2", JsonString("2")),
+            ("f3", JsonString("3"))
+          )
+        )
+      )(encode(c1))
+
+      assertResult(
+        JsonObj(
+          List(
+            ("customField1", JsonString("1")),
+            ("customField2", JsonString("2")),
+            ("f3", JsonString("3"))
+          )
+        )
+      )(encode(Option(c1)))
+
+      assertResult(
+        JsonObj(
+          List(
+            ("customOptionField1", JsonString("1")),
+            ("customOptionField2", JsonString("2")),
+            ("f3", JsonString("3"))
+          )
+        )
+      )(encode(c2))
+
+      assertResult(
+        JsonObj(
+          List(
+            ("customOptionField1", JsonString("1")),
+            ("customOptionField2", JsonString("2")),
+            ("f3", JsonString("3"))
+          )
+        )
+      )(encode(Option(c2)))
+    }
   }
 }

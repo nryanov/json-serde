@@ -159,5 +159,18 @@ class DecoderSpec extends BaseSpec {
       assert(decode[C](jsonWithoutNonOptionalField).isLeft)
       assert(decode[C](jsonWithoutOptionalField).contains(C("nonDefault1")))
     }
+
+    "decode case class with custom field names" in {
+      case class C(@FieldName("customField1") f1: String, @FieldName("customField2") f2: Option[String])
+
+      val json = JsonObj(
+        List(
+          ("customField1", JsonString("nonDefault1")),
+          ("customField2", JsonString("nonDefault2"))
+        )
+      )
+
+      assert(decode[C](json).contains(C("nonDefault1", Some("nonDefault2"))))
+    }
   }
 }
