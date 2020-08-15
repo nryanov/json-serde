@@ -1,7 +1,7 @@
 package jsonserde
 
 import Decoder._
-import DecoderOps._
+import jsonserde.ops.DecoderOps._
 
 class DecoderSpec extends BaseSpec {
   "decoder" should {

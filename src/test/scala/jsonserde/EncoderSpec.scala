@@ -1,7 +1,7 @@
 package jsonserde
 
 import Encoder._
-import EncoderOps._
+import jsonserde.ops.EncoderOps._
 
 class EncoderSpec extends BaseSpec {
   "encoder" should {

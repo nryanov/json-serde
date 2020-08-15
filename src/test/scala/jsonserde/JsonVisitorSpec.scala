@@ -1,5 +1,7 @@
 package jsonserde
 
+import jsonserde.ops.JsonOps
+
 class JsonVisitorSpec extends BaseSpec {
   "json visitor" should {
     "return JsonNull" in {

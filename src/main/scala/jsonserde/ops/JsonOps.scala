@@ -1,6 +1,7 @@
-package jsonserde
+package jsonserde.ops
 
 import jsonserde.antlr.{JSONLexer, JSONParser}
+import jsonserde.{Json, JsonVisitor}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 
 import scala.util.Try
