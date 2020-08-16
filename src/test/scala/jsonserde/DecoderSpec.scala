@@ -172,5 +172,47 @@ class DecoderSpec extends BaseSpec {
 
       assert(decode[C](json).contains(C("nonDefault1", Some("nonDefault2"))))
     }
+
+    "decode hierarchy" in {
+      sealed trait A
+      case class CC1(f1: String) extends A
+      case class CC2(f2: String, f3: Option[String]) extends A
+
+      val json1 = JsonObj(
+        List(
+          ("f1", JsonString("v1"))
+        )
+      )
+
+      val json2 = JsonObj(
+        List(
+          ("f2", JsonString("v2"))
+        )
+      )
+
+      assert(decode[A](json1).contains(CC1("v1")))
+      assert(decode[A](json2).contains(CC2("v2", None)))
+    }
+
+    "decode hierarchy (option)" in {
+      sealed trait A
+      case class CC1(f1: String) extends A
+      case class CC2(f2: String, f3: Option[String]) extends A
+
+      val json1 = JsonObj(
+        List(
+          ("f1", JsonString("v1"))
+        )
+      )
+
+      val json2 = JsonObj(
+        List(
+          ("f2", JsonString("v2"))
+        )
+      )
+
+      assert(decode[Option[A]](json1).contains(Some(CC1("v1"))))
+      assert(decode[Option[A]](json2).contains(Some(CC2("v2", None))))
+    }
   }
 }

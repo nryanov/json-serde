@@ -55,6 +55,20 @@ object Decoder extends DecoderLowPriorityInstances {
 }
 
 trait DecoderLowPriorityInstances extends DecoderLowestPriorityInstances {
+  final implicit def jsonGenericFamilyDecoder[A, H <: Coproduct](
+    implicit gen: LabelledGeneric.Aux[A, H],
+    hDecoder: Lazy[Decoder[H]]
+  ): Decoder[A] = json => hDecoder.value.decode(json).map(gen.from)
+
+  final implicit val cnilDecoder: Decoder[CNil] = _ => Left(new RuntimeException("Impossible"))
+
+  final implicit def coproductGenericDecoder[K <: Symbol, H, T <: Coproduct](
+    implicit hDecoder: Lazy[Decoder[H]],
+    tDecoder: Lazy[Decoder[T]]
+  ): Decoder[FieldType[K, H] :+: T] = json => {
+    hDecoder.value.decode(json).map(r => Inl(field[K](r))).orElse(tDecoder.value.decode(json).map(Inr(_)))
+  }
+
   final implicit def jsonGenericDecoder[A, H <: HList, HD <: HList, FH <: HList](
     implicit gen: LabelledGeneric.Aux[A, H],
     defaults: Default.AsOptions.Aux[A, HD],
@@ -89,6 +103,25 @@ trait DecoderLowPriorityInstances extends DecoderLowestPriorityInstances {
 }
 
 trait DecoderLowestPriorityInstances {
+  final implicit def jsonOptionGenericFamilyDecoder[A, H <: Coproduct](
+    implicit gen: LabelledGeneric.Aux[A, H],
+    hDecoder: Lazy[Decoder[Option[H]]]
+  ): Decoder[Option[A]] = {
+    case JsonNull => Right(None)
+    case json     => hDecoder.value.decode(json).map(_.map(gen.from))
+  }
+
+  final implicit val cnilOptionDecoder: Decoder[Option[CNil]] = _ => Left(new RuntimeException("Impossible"))
+
+  final implicit def coproductGenericOptionDecoder[K <: Symbol, H, T <: Coproduct](
+    implicit hDecoder: Lazy[Decoder[H]],
+    tDecoder: Lazy[Decoder[T]]
+  ): Decoder[Option[FieldType[K, H] :+: T]] = {
+    case json @ JsonObj(_) =>
+      hDecoder.value.decode(json).map(r => Inl(field[K](r))).orElse(tDecoder.value.decode(json).map(Inr(_))).map(Some(_))
+    case _ => Left(new RuntimeException("Incorrect data: expected JsonObject"))
+  }
+
   final implicit def jsonOptionGenericDecoder[A, H <: HList, HD <: HList, FH <: HList](
     implicit gen: LabelledGeneric.Aux[A, H],
     defaults: Default.AsOptions.Aux[A, HD],

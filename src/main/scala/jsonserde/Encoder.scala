@@ -37,6 +37,21 @@ object Encoder extends EncoderLowPriorityInstances {
 }
 
 trait EncoderLowPriorityInstances extends EncoderLowestPriorityInstances {
+  final implicit def genericFamilyEncoder[A, H <: Coproduct](
+    implicit gen: LabelledGeneric.Aux[A, H],
+    hEncoder: Lazy[Encoder[H]]
+  ): Encoder[A] = value => hEncoder.value.encode(gen.to(value))
+
+  final implicit val cnilEncoder: Encoder[CNil] = _ => JsonNull
+
+  final implicit def coproductEncoder[K <: Symbol, H, T <: Coproduct](
+    implicit hEncoder: Lazy[Encoder[H]],
+    tEncoder: Lazy[Encoder[T]]
+  ): Encoder[FieldType[K, H] :+: T] = {
+    case Inl(head) => hEncoder.value.encode(head)
+    case Inr(tail) => tEncoder.value.encode(tail)
+  }
+
   final implicit def genericEncoder[A, H <: HList, FH <: HList](
     implicit gen: LabelledGeneric.Aux[A, H],
     annotations: Annotations.Aux[FieldName, A, FH],
@@ -63,6 +78,27 @@ trait EncoderLowPriorityInstances extends EncoderLowestPriorityInstances {
 }
 
 trait EncoderLowestPriorityInstances {
+  final implicit def genericFamilyOptionEncoder[A, H <: Coproduct](
+    implicit gen: LabelledGeneric.Aux[A, H],
+    hEncoder: Lazy[Encoder[Option[H]]]
+  ): Encoder[Option[A]] = {
+    case value @ Some(_) => hEncoder.value.encode(value.map(gen.to))
+    case None            => JsonNull
+  }
+
+  final implicit val cnilOptionEncoder: Encoder[Option[CNil]] = _ => JsonNull
+
+  final implicit def coproductOptionEncoder[K <: Symbol, H, T <: Coproduct](
+    implicit hEncoder: Lazy[Encoder[H]],
+    tEncoder: Lazy[Encoder[T]],
+    N: H <:!< Option[α] forSome { type α }
+  ): Encoder[Option[FieldType[K, H] :+: T]] = coproduct => {
+    coproduct.fold(JsonNull: Json) {
+      case Inl(head) => hEncoder.value.encode(head)
+      case Inr(tail) => tEncoder.value.encode(tail)
+    }
+  }
+
   implicit def genericOptionEncoder[A, Repr <: HList, FH <: HList](
     implicit gen: LabelledGeneric.Aux[A, Repr],
     annotations: Annotations.Aux[FieldName, A, FH],
