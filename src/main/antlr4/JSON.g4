@@ -11,8 +11,8 @@ json
    ;
 
 obj
-   : '{' pair (',' pair)* '}'
-   | '{' '}'
+   : '{' pair (',' pair)* '}'   #NotEmptyObject
+   | '{' '}'                    #EmptyObject
    ;
 
 pair
@@ -20,18 +20,18 @@ pair
    ;
 
 arr
-   : '[' value (',' value)* ']'
-   | '[' ']'
+   : '[' value (',' value)* ']' #NotEmptyArray
+   | '[' ']'                    #EmptyArray
    ;
 
 value
-   : STRING #StringValue
-   | NUMBER #NumberValue
-   | obj #ObjectValue
-   | arr #ArrayValue
-   | 'true' #True
-   | 'false' #False
-   | 'null' #Null
+   : STRING     #StringValue
+   | NUMBER     #NumberValue
+   | obj        #ObjectValue
+   | arr        #ArrayValue
+   | 'true'     #True
+   | 'false'    #False
+   | 'null'     #Null
    ;
 
 

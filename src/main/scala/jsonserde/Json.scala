@@ -4,7 +4,15 @@ sealed trait Json
 
 final case class JsonObj(fields: List[(String, Json)]) extends Json
 
+object JsonObj {
+  final val EMPTY: JsonObj = JsonObj(List.empty)
+}
+
 final case class JsonArray(values: Vector[Json]) extends Json
+
+object JsonArray {
+  final val EMPTY: JsonArray = JsonArray(Vector.empty)
+}
 
 final case class JsonBoolean(value: Boolean) extends Json
 
