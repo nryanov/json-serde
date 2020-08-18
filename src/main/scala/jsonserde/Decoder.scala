@@ -9,16 +9,19 @@ trait Decoder[A] extends Serializable { self =>
   final def map[B](f: A => B): Decoder[B] = (json: Json) => self.decode(json).map(f)
 }
 
-private[jsonserde] trait DecoderWithDefaults[A, B] extends Serializable {
-  def decode(json: Json, defaults: B): Either[Throwable, A]
-}
-
 private[jsonserde] trait DecoderWithMeta[A, B, C] extends Serializable {
   def decode(json: Json, defaults: B, fieldNames: C): Either[Throwable, A]
 }
 
 object Decoder extends DecoderLowPriorityInstances {
   def apply[A](implicit decoder: Decoder[A]): Decoder[A] = decoder
+
+  final implicit val unitReader: Decoder[Unit] = {
+    case JsonObj(fields) if fields.isEmpty   => Right(())
+    case JsonArray(values) if values.isEmpty => Right(())
+    case JsonNull                            => Right(())
+    case _                                   => Left(new RuntimeException("Unit"))
+  }
 
   implicit def fromJsonReader[A](implicit reader: JsonReader[A]): Decoder[A] = {
     case null     => Left(new RuntimeException("Non nullable field does not exist"))
@@ -31,37 +34,13 @@ object Decoder extends DecoderLowPriorityInstances {
     case JsonNull => Right(None)
     case json     => reader.read(json).map(Some(_))
   }
-
-  // implicit instance for case classes like CC(f1: String, f2: String) -> encode[CC]
-  implicit def fromJsonReaderWithDefault[A](implicit reader: JsonReader[A]): DecoderWithDefaults[A, Option[A]] = {
-    case (null, _)     => Left(new RuntimeException("Non nullable field does not exist"))
-    case (JsonNull, _) => Left(new RuntimeException("Non nullable field is null"))
-    case (json, _)     => reader.read(json)
-  }
-
-  // implicit instance for case classes like CC(f1: String, f2: String) -> encode[Option[CC]]
-  implicit def fromJsonReaderOptionWithDefault1[A](
-    implicit reader: JsonReader[A]
-  ): DecoderWithDefaults[Option[A], Option[Option[A]]] = {
-    case (null, default)     => Right(default.flatten)
-    case (JsonNull, default) => Right(default.flatten)
-    case (json, _)           => reader.read(json).map(Some(_))
-  }
-
-  // implicit instance for case classes like CC(f1: String, f2: Option[String]) -> encode[Option[CC]]
-  implicit def fromJsonReaderOptionWithDefault2[A](
-    implicit reader: JsonReader[A]
-  ): DecoderWithDefaults[Option[A], Option[A]] = {
-    case (null, default)     => Right(default)
-    case (JsonNull, default) => Right(default)
-    case (json, _)           => reader.read(json).map(Some(_))
-  }
 }
 
 trait DecoderLowPriorityInstances extends DecoderLowestPriorityInstances {
   final implicit def jsonGenericFamilyDecoder[A, H <: Coproduct](
     implicit gen: LabelledGeneric.Aux[A, H],
-    hDecoder: Lazy[Decoder[H]]
+    hDecoder: Lazy[Decoder[H]],
+    notOption: A <:!< Option[Z] forSome { type Z }
   ): Decoder[A] = json => hDecoder.value.decode(json).map(gen.from)
 
   final implicit val cnilDecoder: Decoder[CNil] = _ => Left(new RuntimeException("Impossible"))
@@ -84,7 +63,7 @@ trait DecoderLowPriorityInstances extends DecoderLowestPriorityInstances {
 
   final implicit def hlistDecoder[K <: Symbol, H, T <: HList, TD <: HList, FH <: Option[FieldName], FT <: HList](
     implicit witness: Witness.Aux[K],
-    hDecoder: Lazy[DecoderWithDefaults[H, Option[H]]],
+    hDecoder: Lazy[Decoder[H]],
     tDecoder: Lazy[DecoderWithMeta[T, TD, FT]]
   ): DecoderWithMeta[FieldType[K, H] :: T, Option[H] :: TD, FH :: FT] = { (json, defaults, fieldNames) =>
     val fieldName: String = fieldNames.head.map(_.value).getOrElse(witness.value.name)
@@ -94,7 +73,16 @@ trait DecoderLowPriorityInstances extends DecoderLowestPriorityInstances {
         val jsonField = fields.collectFirst {
           case (str, json) if str == fieldName => json
         }
-        val head: Either[Throwable, H] = hDecoder.value.decode(jsonField.orNull, defaults.head)
+
+        jsonField.map(hDecoder.value.decode)
+        val head: Either[Throwable, H] = jsonField match {
+          case Some(value) => hDecoder.value.decode(value)
+          case None =>
+            defaults.head match {
+              case Some(default) => Right(default)
+              case None          => hDecoder.value.decode(null)
+            }
+        }
         val tail: Either[Throwable, T] = tDecoder.value.decode(json, defaults.tail, fieldNames.tail)
 
         for {
@@ -140,9 +128,9 @@ trait DecoderLowestPriorityInstances {
 
   implicit def hlistOptionDecoder1[K <: Symbol, H, T <: HList, TD <: HList, FH <: Option[FieldName], FT <: HList](
     implicit witness: Witness.Aux[K],
-    hDecoder: Lazy[DecoderWithDefaults[Option[H], Option[H]]],
+    hDecoder: Lazy[Decoder[Option[H]]],
     tDecoder: Lazy[DecoderWithMeta[Option[T], TD, FT]],
-    N: H <:!< Option[α] forSome { type α }
+    notOption: H <:!< Option[Z] forSome { type Z }
   ): DecoderWithMeta[Option[FieldType[K, H] :: T], Option[H] :: TD, FH :: FT] = { (json, defaults, fieldNames) =>
     val fieldName: String = fieldNames.head.map(_.value).getOrElse(witness.value.name)
 
@@ -152,7 +140,11 @@ trait DecoderLowestPriorityInstances {
           case (str, json) if str == fieldName => json
         }
 
-        val head: Either[Throwable, Option[H]] = hDecoder.value.decode(jsonField.orNull, defaults.head)
+        // use default value only if key is missing
+        val head: Either[Throwable, Option[H]] = jsonField match {
+          case Some(value) => hDecoder.value.decode(value)
+          case None        => Right(defaults.head)
+        }
         val tail: Either[Throwable, Option[T]] = tDecoder.value.decode(json, defaults.tail, fieldNames.tail)
         head.flatMap(headOption => tail.map(tailOption => tailOption.flatMap(tt => headOption.map(field[K](_) :: tt))))
       case _ => Left(new RuntimeException("Incorrect data: expected JsonObject"))
@@ -161,7 +153,7 @@ trait DecoderLowestPriorityInstances {
 
   final implicit def hlistOptionDecoder2[K <: Symbol, H, T <: HList, TD <: HList, FH <: Option[FieldName], FT <: HList](
     implicit witness: Witness.Aux[K],
-    hDecoder: Lazy[DecoderWithDefaults[Option[H], Option[Option[H]]]],
+    hDecoder: Lazy[Decoder[Option[H]]],
     tDecoder: Lazy[DecoderWithMeta[Option[T], TD, FT]]
   ): DecoderWithMeta[Option[FieldType[K, Option[H]] :: T], Option[Option[H]] :: TD, FH :: FT] = { (json, defaults, fieldNames) =>
     val fieldName: String = fieldNames.head.map(_.value).getOrElse(witness.value.name)
@@ -172,7 +164,11 @@ trait DecoderLowestPriorityInstances {
           case (str, json) if str == fieldName => json
         }
 
-        val head: Either[Throwable, Option[H]] = hDecoder.value.decode(jsonField.orNull, defaults.head)
+        // use default value only if key is missing
+        val head: Either[Throwable, Option[H]] = jsonField match {
+          case Some(value) => hDecoder.value.decode(value)
+          case None        => Right(defaults.head.flatten)
+        }
         val tail: Either[Throwable, Option[T]] = tDecoder.value.decode(json, defaults.tail, fieldNames.tail)
         head.flatMap(headOption => tail.map(_.map(field[K](headOption) :: _)))
       case _ => Left(new RuntimeException("Incorrect data: expected JsonObject"))

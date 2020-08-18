@@ -14,13 +14,6 @@ object JsonReader {
 
   final implicit val jsonJsonRead: JsonReader[Json] = (json: Json) => Right(json)
 
-  final implicit val jsonUnitRead: JsonReader[Unit] = {
-    case JsonObj(fields) if fields.isEmpty   => Right(())
-    case JsonArray(values) if values.isEmpty => Right(())
-    case JsonNull                            => Right(())
-    case _                                   => Left(new RuntimeException("Unit"))
-  }
-
   final implicit val jsonStringRead: JsonReader[String] = {
     case JsonString(value) => Right(value)
     case _                 => Left(new RuntimeException("String"))

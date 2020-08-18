@@ -200,7 +200,7 @@ class EncoderSpec extends BaseSpec {
     "encode hierarchy" in {
       sealed trait A
       case class CC1(f1: String) extends A
-      case class CC2(f2: String) extends A
+      case class CC2(f2: String, f3: Option[String] = None) extends A
 
       val a1: A = CC1("1")
       val a2: A = CC2("2")
@@ -216,7 +216,8 @@ class EncoderSpec extends BaseSpec {
       assertResult(
         JsonObj(
           List(
-            ("f2", JsonString("2"))
+            ("f2", JsonString("2")),
+            ("f3", JsonNull)
           )
         )
       )(encode(a2))

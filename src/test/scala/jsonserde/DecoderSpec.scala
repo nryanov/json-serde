@@ -142,9 +142,9 @@ class DecoderSpec extends BaseSpec {
         )
       )
 
-      // we can return default value for non-nullable fields, but currently we'll return error
       val jsonWithoutNonOptionalField = JsonObj(
         List(
+          ("f1", JsonString("1")),
           ("f2", JsonString("nonDefault2"))
         )
       )
@@ -156,7 +156,7 @@ class DecoderSpec extends BaseSpec {
       )
 
       assert(decode[C](json).contains(C("nonDefault1", Some("nonDefault2"))))
-      assert(decode[C](jsonWithoutNonOptionalField).isLeft)
+      assert(decode[C](jsonWithoutNonOptionalField).contains(C("1", Some("nonDefault2"))))
       assert(decode[C](jsonWithoutOptionalField).contains(C("nonDefault1")))
     }
 
