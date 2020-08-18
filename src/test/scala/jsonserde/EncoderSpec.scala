@@ -2,7 +2,6 @@ package jsonserde
 
 import Encoder._
 import jsonserde.ops.EncoderOps._
-import shapeless.LabelledGeneric.Aux
 
 class EncoderSpec extends BaseSpec {
   "encoder" should {
@@ -247,6 +246,30 @@ class EncoderSpec extends BaseSpec {
           )
         )
       )(encode(a2))
+    }
+
+    "encode nested case classes" in {
+      case class CC1(f1: String, f2: String)
+      case class CC2(f3: String, f4: CC1)
+
+      val cc2: CC2 = CC2("3", CC1("1", "2"))
+
+      assertResult(
+        JsonObj(
+          List(
+            ("f3", JsonString("3")),
+            (
+              "f4",
+              JsonObj(
+                List(
+                  ("f1", JsonString("1")),
+                  ("f2", JsonString("2"))
+                )
+              )
+            )
+          )
+        )
+      )(encode(cc2))
     }
   }
 }

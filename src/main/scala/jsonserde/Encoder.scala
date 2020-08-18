@@ -10,11 +10,13 @@ trait Encoder[A] extends Serializable { self =>
 }
 
 private[jsonserde] trait EncoderWithCustomFieldName[A, B] extends Serializable {
-  def encode(value: A, fieldName: B): Json
+  def encode(value: A, fieldName: B): JsonObj
 }
 
 object Encoder extends EncoderLowPriorityInstances {
   def apply[A](implicit encoder: Encoder[A]): Encoder[A] = encoder
+
+  implicit val unitWriter: Encoder[Unit] = _ => JsonObj.EMPTY
 
   implicit def fromJsonWriter[A](implicit writer: JsonWriter[A]): Encoder[A] = writer.write
 
@@ -22,24 +24,13 @@ object Encoder extends EncoderLowPriorityInstances {
     case Some(value) => writer.write(value)
     case None        => JsonNull
   }
-
-  implicit def fromJsonWriterWithCustomFieldName[A, B <: Option[FieldName]](
-    implicit writer: JsonWriter[A]
-  ): EncoderWithCustomFieldName[A, B] =
-    (value, _) => writer.write(value)
-
-  implicit def fromJsonWriterOptionWithCustomFieldName[A, B <: Option[FieldName]](
-    implicit writer: JsonWriter[A]
-  ): EncoderWithCustomFieldName[Option[A], B] = {
-    case (Some(value), _) => writer.write(value)
-    case (None, _)        => JsonNull
-  }
 }
 
 trait EncoderLowPriorityInstances extends EncoderLowestPriorityInstances {
   final implicit def genericFamilyEncoder[A, H <: Coproduct](
     implicit gen: LabelledGeneric.Aux[A, H],
-    hEncoder: Lazy[Encoder[H]]
+    hEncoder: Lazy[Encoder[H]],
+    notOption: A <:!< Option[Z] forSome { type Z }
   ): Encoder[A] = value => hEncoder.value.encode(gen.to(value))
 
   final implicit val cnilEncoder: Encoder[CNil] = _ => JsonNull
@@ -58,22 +49,18 @@ trait EncoderLowPriorityInstances extends EncoderLowestPriorityInstances {
     hEncoder: Lazy[EncoderWithCustomFieldName[H, FH]]
   ): Encoder[A] = (value: A) => hEncoder.value.encode(gen.to(value), annotations())
 
-  final implicit val hnilEncoder: EncoderWithCustomFieldName[HNil, HNil] = (_, _) => JsonNull
+  final implicit val hnilEncoder: EncoderWithCustomFieldName[HNil, HNil] = (_, _) => JsonObj.EMPTY
 
   final implicit def hlistEncoder[K <: Symbol, H, T <: HList, FH <: Option[FieldName], FT <: HList](
     implicit witness: Witness.Aux[K],
-    hEncoder: Lazy[EncoderWithCustomFieldName[H, FH]],
+    hEncoder: Lazy[Encoder[H]],
     tEncoder: Lazy[EncoderWithCustomFieldName[T, FT]]
   ): EncoderWithCustomFieldName[FieldType[K, H] :: T, FH :: FT] = { (hlist, fieldNames) =>
-    val head = hEncoder.value.encode(hlist.head, fieldNames.head)
+    val head = hEncoder.value.encode(hlist.head)
     val tail = tEncoder.value.encode(hlist.tail, fieldNames.tail)
-
     val fieldName: String = fieldNames.head.map(_.value).getOrElse(witness.value.name)
 
-    tail match {
-      case JsonObj(fields) => JsonObj(List((fieldName, head)) ::: fields)
-      case _               => JsonObj(List((fieldName, head)))
-    }
+    JsonObj(List((fieldName, head)) ::: tail.fields)
   }
 }
 
@@ -90,8 +77,7 @@ trait EncoderLowestPriorityInstances {
 
   final implicit def coproductOptionEncoder[K <: Symbol, H, T <: Coproduct](
     implicit hEncoder: Lazy[Encoder[H]],
-    tEncoder: Lazy[Encoder[T]],
-    N: H <:!< Option[α] forSome { type α }
+    tEncoder: Lazy[Encoder[T]]
   ): Encoder[Option[FieldType[K, H] :+: T]] = coproduct => {
     coproduct.fold(JsonNull: Json) {
       case Inl(head) => hEncoder.value.encode(head)
@@ -108,13 +94,13 @@ trait EncoderLowestPriorityInstances {
     case None            => JsonNull
   }
 
-  implicit val hnilOptionEncoder: EncoderWithCustomFieldName[Option[HNil], HNil] = (_, _) => JsonNull
+  implicit val hnilOptionEncoder: EncoderWithCustomFieldName[Option[HNil], HNil] = (_, _) => JsonObj.EMPTY
 
   implicit def hlistOptionEncoder1[K <: Symbol, H, T <: HList, FT <: Option[FieldName], FH <: HList](
     implicit witness: Witness.Aux[K],
-    hEncoder: Lazy[EncoderWithCustomFieldName[Option[H], FT]],
+    hEncoder: Lazy[Encoder[Option[H]]],
     tEncoder: Lazy[EncoderWithCustomFieldName[Option[T], FH]],
-    N: H <:!< Option[α] forSome { type α }
+    notOption: H <:!< Option[Z] forSome { type Z }
   ): EncoderWithCustomFieldName[Option[FieldType[K, H] :: T], FT :: FH] = {
     def split[A](v: Option[H :: T])(f: (Option[H], Option[T]) => A): A = v.fold(f(None, None))({ case h :: t => f(Some(h), Some(t)) })
 
@@ -123,18 +109,17 @@ trait EncoderLowestPriorityInstances {
 
       split(hlist) {
         case (head, tail) =>
-          val encodedHead: Json = hEncoder.value.encode(head, fieldNames.head)
-          tEncoder.value.encode(tail, fieldNames.tail) match {
-            case JsonObj(fields) => JsonObj(List((fieldName, encodedHead)) ::: fields)
-            case _               => JsonObj(List((fieldName, encodedHead)))
-          }
+          val encodedHead: Json = hEncoder.value.encode(head)
+          val encodedTail: JsonObj = tEncoder.value.encode(tail, fieldNames.tail)
+
+          JsonObj(List((fieldName, encodedHead)) ::: encodedTail.fields)
       }
     }
   }
 
   implicit def hlistOptionEncoder2[K <: Symbol, H, T <: HList, FT <: Option[FieldName], FH <: HList](
     implicit witness: Witness.Aux[K],
-    hEncoder: Lazy[EncoderWithCustomFieldName[Option[H], FT]],
+    hEncoder: Lazy[Encoder[Option[H]]],
     tEncoder: Lazy[EncoderWithCustomFieldName[Option[T], FH]]
   ): EncoderWithCustomFieldName[Option[FieldType[K, Option[H]] :: T], FT :: FH] = {
     def split[A](v: Option[Option[H] :: T])(f: (Option[H], Option[T]) => A): A = v.fold(f(None, None))({ case h :: t => f(h, Some(t)) })
@@ -144,11 +129,10 @@ trait EncoderLowestPriorityInstances {
 
       split(hlist) {
         case (head, tail) =>
-          val encodedHead: Json = hEncoder.value.encode(head, fieldNames.head)
-          tEncoder.value.encode(tail, fieldNames.tail) match {
-            case JsonObj(fields) => JsonObj(List((fieldName, encodedHead)) ::: fields)
-            case _               => JsonObj(List((fieldName, encodedHead)))
-          }
+          val encodedHead: Json = hEncoder.value.encode(head)
+          val encodedTail: JsonObj = tEncoder.value.encode(tail, fieldNames.tail)
+
+          JsonObj(List((fieldName, encodedHead)) ::: encodedTail.fields)
       }
     }
   }

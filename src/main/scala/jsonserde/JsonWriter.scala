@@ -11,8 +11,6 @@ object JsonWriter {
 
   final implicit val jsonJsonWrite: JsonWriter[Json] = (value: Json) => value
 
-  final implicit val jsonUnitWrite: JsonWriter[Unit] = (_: Unit) => JsonObj(List.empty)
-
   final implicit val jsonStringWrite: JsonWriter[String] = (value: String) => JsonString(value)
 
   final implicit val jsonCharWrite: JsonWriter[Char] = (value: Char) => JsonString(value.toString)
