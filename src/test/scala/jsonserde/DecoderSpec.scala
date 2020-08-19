@@ -119,17 +119,28 @@ class DecoderSpec extends BaseSpec {
         )
       )
 
-      val jsonWithoutField = JsonObj(
+      val jsonWithoutOptionalField = JsonObj(
         List(
           ("f1", JsonString("1")),
           ("f3", JsonArray(Vector(JsonString("3"))))
         )
       )
 
+      val jsonWithoutRequiredField = JsonObj(
+        List(
+          ("f2", JsonNumber(2)),
+          ("f3", JsonArray(Vector(JsonString("3"))))
+        )
+      )
+
       assert(decode[Option[B]](json).contains(Some(B("1", Some(2), List("3")))))
       assert(decode[B](jsonWithNull).contains(B("1", None, List("3"))))
-      assert(decode[B](jsonWithoutField).contains(B("1", None, List("3"))))
-      assert(decode[Option[B]](jsonWithoutField).contains(Some(B("1", None, List("3")))))
+
+      assert(decode[B](jsonWithoutOptionalField).contains(B("1", None, List("3"))))
+      assert(decode[Option[B]](jsonWithoutOptionalField).contains(Some(B("1", None, List("3")))))
+
+      assert(decode[B](jsonWithoutRequiredField).isLeft)
+      assert(decode[Option[B]](jsonWithoutRequiredField).contains(None))
     }
 
     "decode case class with default values" in {
@@ -144,7 +155,6 @@ class DecoderSpec extends BaseSpec {
 
       val jsonWithoutNonOptionalField = JsonObj(
         List(
-          ("f1", JsonString("1")),
           ("f2", JsonString("nonDefault2"))
         )
       )

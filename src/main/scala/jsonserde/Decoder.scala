@@ -37,6 +37,11 @@ object Decoder extends DecoderLowPriorityInstances {
 }
 
 trait DecoderLowPriorityInstances extends DecoderLowestPriorityInstances {
+//  implicit def optionalDecoder[A](implicit decoder: Decoder[A]): Decoder[Option[A]] = {
+//    case JsonNull => Right(None)
+//    case json     => decoder.decode(json).map(Some(_))
+//  }
+
   final implicit def jsonGenericFamilyDecoder[A, H <: Coproduct](
     implicit gen: LabelledGeneric.Aux[A, H],
     hDecoder: Lazy[Decoder[H]],

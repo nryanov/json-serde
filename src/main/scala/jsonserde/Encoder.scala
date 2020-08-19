@@ -27,6 +27,11 @@ object Encoder extends EncoderLowPriorityInstances {
 }
 
 trait EncoderLowPriorityInstances extends EncoderLowestPriorityInstances {
+//  implicit def optionalEncoder[A](implicit encoder: Encoder[A]): Encoder[Option[A]] = {
+//    case Some(value) => encoder.encode(value)
+//    case None        => JsonNull
+//  }
+
   final implicit def genericFamilyEncoder[A, H <: Coproduct](
     implicit gen: LabelledGeneric.Aux[A, H],
     hEncoder: Lazy[Encoder[H]],
