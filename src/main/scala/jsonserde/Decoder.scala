@@ -29,19 +29,15 @@ object Decoder extends DecoderLowPriorityInstances {
     case json     => reader.read(json)
   }
 
-  implicit def fromJsonReaderOption[A](implicit reader: JsonReader[A]): Decoder[Option[A]] = {
+  implicit def optionalDecoder[A](implicit decoder: Decoder[A]): Decoder[Option[A]] = {
     case null     => Right(None)
     case JsonNull => Right(None)
-    case json     => reader.read(json).map(Some(_))
+    case json     => decoder.decode(json).map(Some(_))
   }
+
 }
 
-trait DecoderLowPriorityInstances extends DecoderLowestPriorityInstances {
-//  implicit def optionalDecoder[A](implicit decoder: Decoder[A]): Decoder[Option[A]] = {
-//    case JsonNull => Right(None)
-//    case json     => decoder.decode(json).map(Some(_))
-//  }
-
+trait DecoderLowPriorityInstances {
   final implicit def jsonGenericFamilyDecoder[A, H <: Coproduct](
     implicit gen: LabelledGeneric.Aux[A, H],
     hDecoder: Lazy[Decoder[H]],
@@ -99,6 +95,8 @@ trait DecoderLowPriorityInstances extends DecoderLowestPriorityInstances {
   }
 }
 
+/*
+// custom decoder for optional types -- allow to return None instead of Left(error) if some fields are missing for Option[A]
 trait DecoderLowestPriorityInstances {
   final implicit def jsonOptionGenericFamilyDecoder[A, H <: Coproduct](
     implicit gen: LabelledGeneric.Aux[A, H],
@@ -180,3 +178,4 @@ trait DecoderLowestPriorityInstances {
     }
   }
 }
+ */

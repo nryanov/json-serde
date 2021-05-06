@@ -140,7 +140,10 @@ class DecoderSpec extends BaseSpec {
       assert(decode[Option[B]](jsonWithoutOptionalField).contains(Some(B("1", None, List("3")))))
 
       assert(decode[B](jsonWithoutRequiredField).isLeft)
-      assert(decode[Option[B]](jsonWithoutRequiredField).contains(None))
+      // with custom Option codecs foo products
+//      assert(decode[Option[B]](jsonWithoutRequiredField).contains(None))
+      // With Option codecs derived from Decoder
+      assert(decode[Option[B]](jsonWithoutRequiredField).isLeft)
     }
 
     "decode case class with default values" in {

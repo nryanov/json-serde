@@ -20,17 +20,13 @@ object Encoder extends EncoderLowPriorityInstances {
 
   implicit def fromJsonWriter[A](implicit writer: JsonWriter[A]): Encoder[A] = writer.write
 
-  implicit def fromJsonWriterOption[A](implicit writer: JsonWriter[A]): Encoder[Option[A]] = {
-    case Some(value) => writer.write(value)
+  implicit def optionalEncoder[A](implicit encoder: Encoder[A]): Encoder[Option[A]] = {
+    case Some(value) => encoder.encode(value)
     case None        => JsonNull
   }
 }
 
-trait EncoderLowPriorityInstances extends EncoderLowestPriorityInstances {
-//  implicit def optionalEncoder[A](implicit encoder: Encoder[A]): Encoder[Option[A]] = {
-//    case Some(value) => encoder.encode(value)
-//    case None        => JsonNull
-//  }
+trait EncoderLowPriorityInstances {
 
   final implicit def genericFamilyEncoder[A, H <: Coproduct](
     implicit gen: LabelledGeneric.Aux[A, H],
@@ -69,6 +65,8 @@ trait EncoderLowPriorityInstances extends EncoderLowestPriorityInstances {
   }
 }
 
+/*
+// custom encoder for optional types
 trait EncoderLowestPriorityInstances {
   final implicit def genericFamilyOptionEncoder[A, H <: Coproduct](
     implicit gen: LabelledGeneric.Aux[A, H],
@@ -142,3 +140,4 @@ trait EncoderLowestPriorityInstances {
     }
   }
 }
+ */
